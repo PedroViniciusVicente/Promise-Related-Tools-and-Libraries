@@ -55,7 +55,7 @@ class DelayInjector {
     });
 
     await Debugger.enable();
-    await Runtime.enable(); // necessário antes de runIfWaitingForDebugger
+    await Runtime.enable();
   }
 
   releaseInitialBreak() {
@@ -105,7 +105,7 @@ async function main() {
 
   await injector.addDelay({
     scriptPath: appPath,
-    lineNumber: 13, // "Promise 2 finished"
+    lineNumber: 13,
     delayMs: 5000,
     label: 'promise2-resolve',
   });

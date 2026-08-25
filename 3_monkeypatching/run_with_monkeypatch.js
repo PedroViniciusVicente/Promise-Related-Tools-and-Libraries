@@ -27,8 +27,6 @@ function waitForInspector(port, timeoutMs = 5000) {
   });
 }
 
-// Monta um snippet que substitui global.setTimeout, somando um delay extra
-// quando o `match` de alguma regra aparece no stack trace da chamada.
 function buildMonkeypatchScript(rules) {
   return `(function() {
     const rules = ${JSON.stringify(rules)};
@@ -43,8 +41,6 @@ function buildMonkeypatchScript(rules) {
   })();`;
 }
 
-// Sobe scriptPath com --inspect-brk, injeta o monkeypatch no escopo global
-// antes de qualquer código da aplicação rodar, e então deixa o app seguir normalmente.
 async function runWithInjectedDelays(scriptPath, rules) {
   const port = 9229;
 
@@ -74,15 +70,13 @@ async function runWithInjectedDelays(scriptPath, rules) {
   });
 }
 
-// ---------- execução como CLI ----------
-
 if (require.main === module) {
   const appPath = path.resolve(__dirname, 'app.js');
 
   runWithInjectedDelays(appPath, [
     {
       label: 'promise2-timer',
-      match: 'app.js:13', // casa com chamadas de setTimeout cujo stack trace inclui essa linha
+      match: 'app.js:13',
       extraDelayMs: 5000,
     },
   ])
