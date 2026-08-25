@@ -4,18 +4,6 @@ const path = require('path');
 const net = require('net');
 const http = require('http');
 
-// ---------- helpers de infraestrutura ----------
-
-function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer();
-    srv.listen(0, () => {
-      const { port } = srv.address();
-      srv.close(() => resolve(port));
-    });
-    srv.on('error', reject);
-  });
-}
 
 function waitForInspector(port, timeoutMs = 5000) {
   const start = Date.now();
@@ -58,7 +46,8 @@ function buildMonkeypatchScript(rules) {
 // Sobe scriptPath com --inspect-brk, injeta o monkeypatch no escopo global
 // antes de qualquer código da aplicação rodar, e então deixa o app seguir normalmente.
 async function runWithInjectedDelays(scriptPath, rules) {
-  const port = await getFreePort();
+  const port = 9229;
+
   const child = spawn('node', [`--inspect-brk=${port}`, scriptPath], { stdio: 'inherit' });
   process.once('exit', () => { try { child.kill('SIGKILL'); } catch {} });
 

@@ -4,17 +4,6 @@ const path = require('path');
 const net = require('net');
 const http = require('http');
 
-function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer();
-    srv.listen(0, () => {
-      const { port } = srv.address();
-      srv.close(() => resolve(port));
-    });
-    srv.on('error', reject);
-  });
-}
-
 function launchInspected(scriptPath, port) {
   return spawn('node', [`--inspect-brk=${port}`, scriptPath], { stdio: 'inherit' });
 }
@@ -101,7 +90,7 @@ class DelayInjector {
 
 async function main() {
   const appPath = path.resolve(__dirname, 'app.js');
-  const port = await getFreePort();
+  const port = 9229;
 
   const child = launchInspected(appPath, port);
   const cleanup = () => { try { child.kill('SIGKILL'); } catch {} };

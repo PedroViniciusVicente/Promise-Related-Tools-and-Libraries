@@ -4,17 +4,6 @@ const path = require('path');
 const net = require('net');
 const http = require('http');
 
-async function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer();
-    srv.listen(0, () => {
-      const { port } = srv.address();
-      srv.close(() => resolve(port));
-    });
-    srv.on('error', reject);
-  });
-}
-
 async function waitForInspector(port, timeoutMs = 5000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -32,11 +21,10 @@ async function waitForInspector(port, timeoutMs = 5000) {
   throw new Error('Timed out waiting for inspector');
 }
 
-// Roda scriptPath sob o inspector, edita os delays no source antes de
-// qualquer código rodar, e deixa executar com os valores já trocados.
 async function runWithPatchedDelays(scriptPath, patches) {
   const scriptUrl = 'file://' + path.resolve(scriptPath);
-  const port = await getFreePort();
+  const port = 9229;
+
   const child = spawn('node', [`--inspect-brk=${port}`, scriptPath], { stdio: 'inherit' });
   process.on('exit', () => child.kill('SIGKILL'));
 
@@ -87,7 +75,6 @@ async function runWithPatchedDelays(scriptPath, patches) {
   });
 }
 
-// --- uso ---
 if (require.main === module) {
   const appPath = path.resolve(__dirname, 'app.js');
 
