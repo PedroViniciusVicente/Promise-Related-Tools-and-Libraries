@@ -1,7 +1,6 @@
 const CDP = require('chrome-remote-interface');
 const { spawn } = require('child_process');
 const path = require('path');
-const net = require('net');
 const http = require('http');
 
 async function waitForInspector(port, timeoutMs = 5000) {
@@ -45,23 +44,17 @@ async function runWithPatchedDelays(scriptPath, patches) {
 
   await Debugger.enable();
   await Runtime.enable();
-  await Runtime.runIfWaitingForDebugger(); // dispara scriptParsed + pause na linha 1
+  await Runtime.runIfWaitingForDebugger();
 
   await scriptReady;
   await paused;
 
   let { scriptSource } = await Debugger.getScriptSource({ scriptId });
 
-  for (const { uniqueAnchor, originalDelayMs, extraDelayMs, label } of patches) {
-    const find = `${uniqueAnchor}${originalDelayMs});`;
-    if (!scriptSource.includes(find)) {
-      await client.close();
-      child.kill('SIGKILL');
-      throw new Error(`[livepatch] padrão não encontrado para "${label}":\n${find}`);
-    }
-    const newDelayMs = originalDelayMs + extraDelayMs;
-    scriptSource = scriptSource.replace(find, `${uniqueAnchor}${newDelayMs});`);
-    console.log(`[livepatch] "${label}": ${originalDelayMs}ms -> ${newDelayMs}ms`);
+  for (const { label, targetSnippet, wrapDelayMs } of patches) {
+    const wrapped = `setTimeout(() => {\n    ${targetSnippet}\n  }, ${wrapDelayMs});`;
+    scriptSource = scriptSource.replace(targetSnippet, wrapped);
+    console.log(`[livepatch] "${label}": extra setTimeout: ${wrapDelayMs}ms`);
   }
 
   await Debugger.setScriptSource({ scriptId, scriptSource });
@@ -81,9 +74,8 @@ if (require.main === module) {
   runWithPatchedDelays(appPath, [
     {
       label: 'promise2-timer',
-      uniqueAnchor: `console.log("Promise 2 finished");\n    resolve("Result from Promise 2");\n  }, `,
-      originalDelayMs: 3000,
-      extraDelayMs: 5000,
+      targetSnippet: 'setTimeout(() => {\n    console.log("Promise 2 finished");\n    resolve("Result from Promise 2");\n  }, 3000);',
+      wrapDelayMs: 5000,
     },
   ])
     .then((code) => {
@@ -95,5 +87,3 @@ if (require.main === module) {
       process.exit(1);
     });
 }
-
-module.exports = { runWithPatchedDelays };
